@@ -22,28 +22,43 @@ ChartJS.register(
   Legend
 );
 
+const countryPresets: { [key: string]: any } = {
+  Finland: { food: 320, rent: 850, energy: 160, transport: 140, debt: 200, income: 3400 },
+  Germany: { food: 310, rent: 750, energy: 150, transport: 130, debt: 180, income: 3300 },
+  USA: { food: 360, rent: 950, energy: 200, transport: 170, debt: 250, income: 5000 },
+  Romania: { food: 260, rent: 450, energy: 120, transport: 100, debt: 90, income: 2000 }
+};
+
+const yearOptions = [2020, 2021, 2022, 2023, 2024, 2025];
+
 export default function Home() {
+  const [country, setCountry] = useState("Finland");
+  const [year, setYear] = useState(2024);
   const [forecastData, setForecastData] = useState<number[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const mockData = [
-    { food: 300, rent: 700, energy: 150, transport: 100, debt: 200, income: 3000 },
-    { food: 310, rent: 710, energy: 160, transport: 110, debt: 190, income: 3050 },
-    { food: 320, rent: 720, energy: 170, transport: 120, debt: 180, income: 3100 },
-    { food: 330, rent: 730, energy: 180, transport: 130, debt: 170, income: 3150 },
-    { food: 340, rent: 740, energy: 190, transport: 140, debt: 160, income: 3200 },
-    { food: 350, rent: 750, energy: 200, transport: 150, debt: 150, income: 3250 },
-  ];
+  const generateSnapshots = () => {
+    const base = countryPresets[country];
+    return Array.from({ length: 6 }).map((_, i) => ({
+      food: base.food + i * 10,
+      rent: base.rent + i * 10,
+      energy: base.energy + i * 5,
+      transport: base.transport + i * 5,
+      debt: base.debt - i * 10,
+      income: base.income + i * 50
+    }));
+  };
 
   const fetchForecast = async () => {
     setLoading(true);
     setError(null);
+    setForecastData(null);
     try {
       const res = await fetch(process.env.NEXT_PUBLIC_ML_API + "/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ snapshots: mockData }),
+        body: JSON.stringify({ snapshots: generateSnapshots() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Unknown error");
@@ -81,11 +96,35 @@ export default function Home() {
       <Head>
         <title>SPI Dashboard 2.0</title>
       </Head>
-      <main style={{ maxWidth: "800px", margin: "0 auto", padding: "2rem", fontFamily: "Arial" }}>
+      <main style={{ maxWidth: "850px", margin: "0 auto", padding: "2rem", fontFamily: "Arial" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "1rem" }}>
           SPI Dashboard 2.0
         </h1>
+        <p style={{ marginBottom: "1rem" }}>
+          The Societal Pressure Index (SPI) estimates pressure on individuals based on living costs, debt, and income.
+          This dashboard visualizes current vs predicted SPI using machine learning.
+        </p>
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+          <select value={country} onChange={(e) => setCountry(e.target.value)}>
+            {Object.keys(countryPresets).map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        {forecastData && (
+          <p style={{ margin: "1rem 0", fontWeight: 500 }}>
+            Forecasting SPI for <strong>{country}</strong> in <strong>{year}</strong>...
+          </p>
+        )}
+
         <Line data={chartData} />
+
         <div style={{ marginTop: "2rem" }}>
           <button
             onClick={fetchForecast}
