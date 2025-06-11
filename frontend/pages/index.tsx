@@ -10,6 +10,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  ChartOptions
 } from "chart.js";
 
 ChartJS.register(
@@ -26,13 +27,7 @@ const countryPresets = {
   Finland: { food: 320, rent: 850, energy: 160, transport: 140, debt: 200, income: 3400 },
   Germany: { food: 310, rent: 750, energy: 150, transport: 130, debt: 180, income: 3300 },
   USA: { food: 360, rent: 950, energy: 200, transport: 170, debt: 250, income: 5000 },
-  Romania: { food: 260, rent: 450, energy: 120, transport: 100, debt: 90, income: 2000 },
-  UK: { food: 330, rent: 800, energy: 170, transport: 150, debt: 220, income: 3600 },
-  Netherlands: { food: 310, rent: 790, energy: 155, transport: 145, debt: 210, income: 3500 },
-  Japan: { food: 300, rent: 720, energy: 160, transport: 130, debt: 180, income: 3400 },
-  Sweden: { food: 310, rent: 780, energy: 150, transport: 140, debt: 170, income: 3450 },
-  Canada: { food: 340, rent: 820, energy: 165, transport: 160, debt: 230, income: 3700 },
-  Spain: { food: 280, rent: 640, energy: 130, transport: 110, debt: 130, income: 2700 }
+  Romania: { food: 260, rent: 450, energy: 120, transport: 100, debt: 90, income: 2000 }
 };
 
 const yearOptions = [2020, 2021, 2022, 2023, 2024, 2025];
@@ -40,9 +35,9 @@ const yearOptions = [2020, 2021, 2022, 2023, 2024, 2025];
 export default function Home() {
   const [country, setCountry] = useState("Finland");
   const [year, setYear] = useState(2024);
-  const [forecastData, setForecastData] = useState(null);
+  const [forecastData, setForecastData] = useState<number[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const generateSnapshots = () => {
     const base = countryPresets[country];
@@ -69,8 +64,8 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Unknown error");
       setForecastData(data.predicted_spi);
-    } catch (err) {
-      setError(err.message || "Fetch failed");
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -101,33 +96,46 @@ export default function Home() {
     ].filter(Boolean),
   };
 
-  const chartOptions = {
+  const chartOptions: ChartOptions<"line"> = {
     responsive: true,
     plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Societal Pressure Index Over Time" },
+      legend: {
+        position: "top" as const
+      },
+      title: {
+        display: true,
+        text: "Societal Pressure Index Over Time"
+      }
     },
     scales: {
-      x: { title: { display: true, text: "Time Step (Month)" } },
-      y: { title: { display: true, text: "SPI Score" }, min: 0, max: 100 }
+      x: {
+        title: { display: true, text: "Time Step (Month)" }
+      },
+      y: {
+        title: { display: true, text: "SPI Score" },
+        suggestedMin: 0,
+        suggestedMax: 100
+      }
     }
   };
 
   return (
     <>
-      <Head><title>SPI Dashboard 2.0</title></Head>
-      <main style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem", fontFamily: "Arial" }}>
-        <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>SPI Dashboard 2.0</h1>
-        <p style={{ marginBottom: "1rem" }}>
-          The Societal Pressure Index (SPI) estimates pressure based on costs, debt, and income. Lower SPI = lower pressure.
+      <Head>
+        <title>SPI Dashboard 2.0</title>
+      </Head>
+      <main style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem", fontFamily: "'Segoe UI', sans-serif" }}>
+        <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "1rem" }}>SPI Dashboard 2.0</h1>
+        <p style={{ marginBottom: "1rem", color: "#374151" }}>
+          The Societal Pressure Index (SPI) estimates stress based on living cost, debt, and income. Lower = better.
         </p>
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
           <select value={country} onChange={(e) => setCountry(e.target.value)}>{Object.keys(countryPresets).map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}</select>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {yearOptions.map((y) => (<option key={y} value={y}>{y}</option>))}
-          </select>
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>{yearOptions.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}</select>
         </div>
         {forecastData && <p>Forecasting SPI for <strong>{country}</strong> in <strong>{year}</strong></p>}
         <Line data={chartData} options={chartOptions} />
@@ -135,7 +143,16 @@ export default function Home() {
           <button
             onClick={fetchForecast}
             disabled={loading}
-            style={{ padding: "10px 20px", backgroundColor: "#4F46E5", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: "#4F46E5",
+              color: "white",
+              fontSize: "1rem",
+              fontWeight: 500,
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer"
+            }}
           >
             {loading ? "Forecasting..." : "Run ML Forecast"}
           </button>
