@@ -40,9 +40,9 @@ const yearOptions = [2020, 2021, 2022, 2023, 2024, 2025];
 export default function Home() {
   const [country, setCountry] = useState("Finland");
   const [year, setYear] = useState(2024);
-  const [forecastData, setForecastData] = useState<number[] | null>(null);
+  const [forecastData, setForecastData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const generateSnapshots = () => {
     const base = countryPresets[country];
@@ -69,8 +69,8 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Unknown error");
       setForecastData(data.predicted_spi);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err.message || "Fetch failed");
     } finally {
       setLoading(false);
     }
@@ -106,74 +106,36 @@ export default function Home() {
     plugins: {
       legend: { position: "top" },
       title: { display: true, text: "Societal Pressure Index Over Time" },
-      tooltip: {
-        callbacks: {
-          label: (context: any) => `SPI: ${context.parsed.y}`
-        }
-      }
     },
     scales: {
-      x: {
-        title: { display: true, text: "Month / Model Step" }
-      },
-      y: {
-        title: { display: true, text: "SPI Score (0–100)" },
-        suggestedMin: 0,
-        suggestedMax: 100
-      }
+      x: { title: { display: true, text: "Time Step (Month)" } },
+      y: { title: { display: true, text: "SPI Score" }, min: 0, max: 100 }
     }
   };
 
   return (
     <>
-      <Head>
-        <title>SPI Dashboard 2.0</title>
-      </Head>
-      <main style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem", fontFamily: "'Segoe UI', sans-serif" }}>
-        <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "1rem", color: "#111827" }}>
-          SPI Dashboard 2.0
-        </h1>
-        <p style={{ marginBottom: "1.25rem", fontSize: "1rem", color: "#374151" }}>
-          The <strong>Societal Pressure Index (SPI)</strong> estimates individual pressure based on essential living costs, debt, and income. Lower SPI = more affordability, higher SPI = more stress.
+      <Head><title>SPI Dashboard 2.0</title></Head>
+      <main style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem", fontFamily: "Arial" }}>
+        <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>SPI Dashboard 2.0</h1>
+        <p style={{ marginBottom: "1rem" }}>
+          The Societal Pressure Index (SPI) estimates pressure based on costs, debt, and income. Lower SPI = lower pressure.
         </p>
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.25rem" }}>
-          <select value={country} onChange={(e) => setCountry(e.target.value)} style={{ padding: "0.5rem", borderRadius: "8px" }}>
-            {Object.keys(countryPresets).map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ padding: "0.5rem", borderRadius: "8px" }}>
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
+        <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+          <select value={country} onChange={(e) => setCountry(e.target.value)}>{Object.keys(countryPresets).map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}</select>
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {yearOptions.map((y) => (<option key={y} value={y}>{y}</option>))}
           </select>
         </div>
-
-        {forecastData && (
-          <p style={{ marginBottom: "1.25rem", fontWeight: 500 }}>
-            Forecasting SPI for <strong>{country}</strong> in <strong>{year}</strong>...
-          </p>
-        )}
-
-        <div style={{ background: "#fff", padding: "1rem", borderRadius: "1rem", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
-          <Line data={chartData} options={chartOptions} />
-        </div>
-
+        {forecastData && <p>Forecasting SPI for <strong>{country}</strong> in <strong>{year}</strong></p>}
+        <Line data={chartData} options={chartOptions} />
         <div style={{ marginTop: "2rem" }}>
           <button
             onClick={fetchForecast}
             disabled={loading}
-            style={{
-              padding: "12px 24px",
-              backgroundColor: "#4F46E5",
-              color: "white",
-              fontSize: "1rem",
-              fontWeight: 500,
-              border: "none",
-              borderRadius: "10px",
-              cursor: "pointer",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-            }}
+            style={{ padding: "10px 20px", backgroundColor: "#4F46E5", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
           >
             {loading ? "Forecasting..." : "Run ML Forecast"}
           </button>
